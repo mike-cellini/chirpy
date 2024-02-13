@@ -12,7 +12,7 @@ func main() {
     mux := http.NewServeMux()
     mux.Handle("/", http.FileServer(http.Dir(filepathRoot)))
     corsMux := middlewareCors(mux)
-    server := http.Server {
+    server := &http.Server {
         Addr: ":" + port,
         Handler: corsMux,
     }
