@@ -21,9 +21,16 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 
 func (cfg *apiConfig) metricsHandler(w http.ResponseWriter, r *http.Request) {
     log.Print("Retrieving file server metrics")
-    w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+    w.Header().Set("Content-Type", "text/html; charset=utf-8")
     w.WriteHeader(200)
-    w.Write([]byte(fmt.Sprintf("Hits: %v", cfg.fileserverHits)))
+    var body = fmt.Sprintln(
+        "<html>\n", 
+        "<body>", 
+        "<h1>Welcome, Chirpy Admin</h1>",
+        "<p>Chirpy has been visited %d times!</p>",
+        "</body>",
+        "</html>")
+    w.Write([]byte(fmt.Sprintf(body, cfg.fileserverHits)))
 }
 
 func (cfg *apiConfig) resetMetricsHandler(w http.ResponseWriter, r *http.Request) {
@@ -39,14 +46,18 @@ func main() {
 
     r := chi.NewRouter()
     rApi := chi.NewRouter()
-    
-    handler := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
-    r.Handle("/app", apiCfg.middlewareMetricsInc(handler))
-    r.Handle("/app/*", apiCfg.middlewareMetricsInc(handler))
+    rAdmin := chi.NewRouter()
+
     rApi.Get("/healthz", readinessHandler)
-    rApi.Get("/metrics", apiCfg.metricsHandler)
     rApi.HandleFunc("/reset", apiCfg.resetMetricsHandler)
     r.Mount("/api", rApi)
+    
+    handler := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
+    rAdmin.Get("/metrics", apiCfg.metricsHandler)
+    r.Mount("/admin", rAdmin)
+
+    r.Handle("/app", apiCfg.middlewareMetricsInc(handler))
+    r.Handle("/app/*", apiCfg.middlewareMetricsInc(handler))
 
     corsMux := middlewareCors(r)
     server := &http.Server {
