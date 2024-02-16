@@ -2,9 +2,11 @@ package main
 
 import (
     "github.com/go-chi/chi/v5"
+
+    "encoding/json"
     "fmt"
-    "net/http"
     "log"
+    "net/http"
 )
 
 type apiConfig struct {
@@ -50,6 +52,7 @@ func main() {
 
     rApi.Get("/healthz", readinessHandler)
     rApi.HandleFunc("/reset", apiCfg.resetMetricsHandler)
+    rApi.HandleFunc("/validate_chirp", chirpHandler)
     r.Mount("/api", rApi)
     
     handler := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
@@ -88,3 +91,56 @@ func readinessHandler(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte("OK"))
 }
 
+func chirpHandler(w http.ResponseWriter, r *http.Request) {
+    const maxChirpLen = 160
+
+    type chirp struct {
+        Body string `json:"body"`
+    }
+
+    type serverError struct {
+        Error string `json:"error"`
+    }
+
+    type chirpValidation struct {
+        Valid bool `json:"valid"`
+    }
+
+    decoder := json.NewDecoder(r.Body)
+    c := chirp{}
+    err := decoder.Decode(&c)
+
+    var errResponse serverError
+
+    if err != nil {
+        errResponse = serverError { Error: "Something went wrong" }
+    } else if len(c.Body) > maxChirpLen {
+        errResponse = serverError { Error: "Chirp is too long" }
+    } else {
+        respBody := chirpValidation { Valid: true }
+        dat, err := json.Marshal(respBody)
+
+        if err != nil {
+            w.WriteHeader(500)
+            log.Printf("Error marhsalling JSON: %s", err)
+            return
+        } else {
+            w.WriteHeader(200)
+            w.Header().Set("Content-Type", "application/json")
+            w.Write(dat)
+            return
+        }
+    }
+    
+    dat, err := json.Marshal(errResponse)
+
+    if err != nil {
+        w.WriteHeader(500)
+        log.Printf("Error marshalling JSON: %s", err)
+        return
+    }
+    
+    w.WriteHeader(400)
+    w.Header().Set("Content-Type", "application/json")
+    w.Write(dat)
+}
