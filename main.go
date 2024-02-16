@@ -6,6 +6,7 @@ import (
     "encoding/json"
     "log"
     "net/http"
+    "strings"
 )
 
 type apiConfig struct {
@@ -62,6 +63,21 @@ func readinessHandler(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte("OK"))
 }
 
+func cleanChirp(in string) string {
+    const sep string = " "
+    const sub string = "****"
+    var badWords = [3]string { "kerfuffle", "sharbert", "fornax" }
+    words := strings.Split(in, sep)
+    for i, w := range words {
+        for _, b := range badWords {
+            if strings.ToLower(w) == b {
+                words[i] = sub
+            }
+        }
+    }
+    return strings.Join(words, sep)
+}
+
 func chirpHandler(w http.ResponseWriter, r *http.Request) {
     const maxChirpLen = 160
 
@@ -74,7 +90,7 @@ func chirpHandler(w http.ResponseWriter, r *http.Request) {
     }
 
     type chirpValidation struct {
-        Valid bool `json:"valid"`
+        CleanedBody string `json:"cleaned_body"`
     }
 
     decoder := json.NewDecoder(r.Body)
@@ -88,7 +104,7 @@ func chirpHandler(w http.ResponseWriter, r *http.Request) {
     } else if len(c.Body) > maxChirpLen {
         errResponse = serverError { Error: "Chirp is too long" }
     } else {
-        respBody := chirpValidation { Valid: true }
+        respBody := chirpValidation { CleanedBody: cleanChirp(c.Body) }
         dat, err := json.Marshal(respBody)
 
         if err != nil {
