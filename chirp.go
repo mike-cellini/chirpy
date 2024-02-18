@@ -10,7 +10,7 @@ import (
 )
 
 type chirpHandler struct {
-    db *DB
+    db *database.DB
 }
 
 func cleanChirp(in string) string {
