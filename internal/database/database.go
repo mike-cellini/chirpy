@@ -7,7 +7,6 @@ import (
     "sync"
     "os"
     "errors"
-    "sort"
 )
 
 type DB struct {
@@ -20,8 +19,14 @@ type Chirp struct {
     Id int `json:"id"`
 }
 
+type User struct {
+    Id int `json:"id"`
+    Email string `json:"email"`
+}
+
 type DBStructure struct {
     Chirps map[int]Chirp `json:"chirps"`
+    Users map[int]User `json:"users"`
 }
 
 func NewDB(path string)(*DB, error) {
@@ -34,7 +39,10 @@ func NewDB(path string)(*DB, error) {
     db.mux.Unlock()
 
     if errors.Is(err, os.ErrNotExist) {
-        dbMap := DBStructure { Chirps: make(map[int]Chirp)}
+        dbMap := DBStructure {
+            Chirps: make(map[int]Chirp),
+            Users: make(map[int]User),
+        }
 
         data, err := json.Marshal(dbMap); 
         if err != nil {
@@ -52,46 +60,6 @@ func NewDB(path string)(*DB, error) {
     }
     
     return db, nil
-}
-
-func (db *DB) CreateChirp(body string) (Chirp, error) {
-    dbStructure, err := db.loadDB()
-    if err != nil {
-        log.Printf("ERROR: Unable to load data from database")
-        return Chirp {}, err
-    }
-
-    id := len(dbStructure.Chirps) + 1
-    
-    c := Chirp { 
-        Id: id, 
-        Body: body,
-    }
-    dbStructure.Chirps[id] = c
-
-    err = db.writeDB(dbStructure)
-    if err != nil {
-        log.Printf("ERROR: Could not write DB: %v", err.Error())
-        return Chirp {}, err
-    }
-
-    return c, nil
-}
-
-func (db *DB) GetChirps() ([]Chirp, error) {
-    dbStructure, err := db.loadDB()
-    if err != nil {
-        log.Printf("ERROR: Unable to load data from database")
-        return []Chirp {}, err
-    }
-
-    vals := make([]Chirp, 0, len(dbStructure.Chirps))
-    for _, v := range dbStructure.Chirps {
-        vals = append(vals, v)
-    }
-
-    sort.Slice(vals, func (a, b int) bool { return vals[a].Id < vals[b].Id })
-    return vals, nil
 }
 
 func (db *DB) loadDB() (DBStructure, error) {

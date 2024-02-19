@@ -1,14 +1,14 @@
 package main
 
 import (
-    "github.com/go-chi/chi/v5"
-
     "log"
     "net/http"
     "path/filepath"
     "os"
 
     "github.com/mike-cellini/chirpy/internal/database"
+    
+    "github.com/go-chi/chi/v5"
 )
 
 type apiConfig struct {
@@ -40,6 +40,7 @@ func main() {
     rApi.HandleFunc("/reset", apiCfg.resetMetricsHandler)
     rApi.Post("/chirps", chirpHandler.create)
     rApi.Get("/chirps", chirpHandler.retrieve)
+    rApi.Get("/chirps/{chirpid}", chirpHandler.retrieveById)
     r.Mount("/api", rApi)
     
     handler := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))

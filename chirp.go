@@ -3,9 +3,12 @@ package main
 import (
     "encoding/json"
     "net/http"
+    "strconv"
     "strings"
     
     "github.com/mike-cellini/chirpy/internal/database"
+    
+    "github.com/go-chi/chi/v5"
 )
 
 type chirpHandler struct {
@@ -44,8 +47,10 @@ func (ch *chirpHandler) create(w http.ResponseWriter, r *http.Request) {
 
     if err != nil {
         respondWithError(w, 400, "Something went wrong")
+        return
     } else if len(req.Body) > maxChirpLen {
         respondWithError(w, 400, "Chirp is too long")
+        return
     }
 
     c, err := ch.db.CreateChirp(req.Body)
@@ -56,6 +61,25 @@ func (ch *chirpHandler) retrieve(w http.ResponseWriter, r *http.Request) {
     data, err := ch.db.GetChirps()
      if err != nil {
          respondWithError(w, 400, "Something went wrong")
+         return
+     }
+     respondWithJSON(w, 200, data)
+}
+
+func (ch *chirpHandler) retrieveById(w http.ResponseWriter, r *http.Request) {
+    chirpID := chi.URLParam(r, "chirpid")
+    id, err := strconv.Atoi(chirpID)
+    if err != nil {
+        respondWithError(w, 400, "Invalid Chirp ID")
+        return
+    }
+    data, ok, err := ch.db.GetChirpById(id)
+     if err != nil {
+         respondWithError(w, 400, "Something went wrong")
+         return
+     } else if !ok {
+         w.WriteHeader(404)
+         return
      }
      respondWithJSON(w, 200, data)
 }
