@@ -61,20 +61,12 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
         return Chirp {}, err
     }
 
-    var id int = 1
+    id := len(dbStructure.Chirps) + 1
     
-    if len(dbStructure.Chirps) > 0 {
-        keys := make([]int, 0, len(dbStructure.Chirps))
-        for k := range dbStructure.Chirps {
-            keys = append(keys, k)
-        }
-
-        sort.Slice(keys, func (a, b int) bool { return a > b })
-
-        id = keys[0] + 1
+    c := Chirp { 
+        Id: id, 
+        Body: body,
     }
-
-    c := Chirp { Id: id, Body: body }
     dbStructure.Chirps[id] = c
 
     err = db.writeDB(dbStructure)
