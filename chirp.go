@@ -2,7 +2,6 @@ package main
 
 import (
     "encoding/json"
-    "log"
     "net/http"
     "strings"
     
@@ -31,12 +30,8 @@ func cleanChirp(in string) string {
 func (ch *chirpHandler) create(w http.ResponseWriter, r *http.Request) {
     const maxChirpLen = 160
 
-    type newChirp struct {
+    type request struct {
         Body string `json:"body"`
-    }
-
-    type serverError struct {
-        Error string `json:"error"`
     }
 
     type chirpValidation struct {
@@ -44,40 +39,23 @@ func (ch *chirpHandler) create(w http.ResponseWriter, r *http.Request) {
     }
 
     decoder := json.NewDecoder(r.Body)
-    c := newChirp{}
-    err := decoder.Decode(&c)
-
-    var errResponse serverError
+    req := request{}
+    err := decoder.Decode(&req)
 
     if err != nil {
-        errResponse = serverError { Error: "Something went wrong" }
-    } else if len(c.Body) > maxChirpLen {
-        errResponse = serverError { Error: "Chirp is too long" }
-    } else {
-        respBody := chirpValidation { CleanedBody: cleanChirp(c.Body) }
-        dat, err := json.Marshal(respBody)
-
-        if err != nil {
-            w.WriteHeader(500)
-            log.Printf("Error marhsalling JSON: %s", err)
-            return
-        } else {
-            w.WriteHeader(200)
-            w.Header().Set("Content-Type", "application/json")
-            w.Write(dat)
-            return
-        }
+        respondWithError(w, 400, "Something went wrong")
+    } else if len(req.Body) > maxChirpLen {
+        respondWithError(w, 400, "Chirp is too long")
     }
-    
-    dat, err := json.Marshal(errResponse)
 
-    if err != nil {
-        w.WriteHeader(500)
-        log.Printf("Error marshalling JSON: %s", err)
-        return
-    }
-    
-    w.WriteHeader(400)
-    w.Header().Set("Content-Type", "application/json")
-    w.Write(dat)
+    c, err := ch.db.CreateChirp(req.Body)
+    respondWithJSON(w, 201, c)
+}
+
+func (ch *chirpHandler) retrieve(w http.ResponseWriter, r *http.Request) {
+    data, err := ch.db.GetChirps()
+     if err != nil {
+         respondWithError(w, 400, "Something went wrong")
+     }
+     respondWithJSON(w, 200, data)
 }
