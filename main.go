@@ -30,7 +30,8 @@ func main() {
         log.Fatal("FATAL: Could not retrieve or create DB")
     }
 
-    var chirpHandler = chirpHandler { db: db }
+    chirpHandler := chirpHandler { db: db }
+    userHandler := userHandler { db: db }
 
     r := chi.NewRouter()
     rApi := chi.NewRouter()
@@ -41,6 +42,7 @@ func main() {
     rApi.Post("/chirps", chirpHandler.create)
     rApi.Get("/chirps", chirpHandler.retrieve)
     rApi.Get("/chirps/{chirpid}", chirpHandler.retrieveById)
+    rApi.Post("/users", userHandler.create)
     r.Mount("/api", rApi)
     
     handler := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
