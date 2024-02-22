@@ -43,6 +43,7 @@ func main() {
     rApi.Get("/chirps", chirpHandler.retrieve)
     rApi.Get("/chirps/{chirpid}", chirpHandler.retrieveById)
     rApi.Post("/users", userHandler.create)
+    rApi.Post("/login", userHandler.authenticate)
     r.Mount("/api", rApi)
     
     handler := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
