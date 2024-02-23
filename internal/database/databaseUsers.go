@@ -36,6 +36,32 @@ func (db *DB) CreateUser(email string, passHash string) (User, error) {
     return u, nil
 }
 
+func (db *DB) UpdateUser(id int, email string, passwordHash string) (User, error) {
+    dbStructure, err := db.loadDB()
+    if err != nil {
+        log.Printf("ERROR: Unable to load data from database")
+        return User {}, err
+    }
+
+    u, ok := dbStructure.Users[id]
+    if !ok {
+        log.Printf("ERROR: User %d does not exist", id)
+        return User {}, errors.New("Unable to update user, does not exist")
+    }
+
+    u.Email = email
+    u.PasswordHash = passwordHash
+    dbStructure.Users[id] = u
+    
+    err = db.writeDB(dbStructure)
+    if err != nil {
+        log.Printf("ERROR: Could not write DB: %v", err.Error())
+        return User {}, err
+    }
+
+    return u, nil
+}
+
 func (db *DB) RetrieveUserByEmail(email string) (User, error) {
     dbStructure, err := db.loadDB()
     if err != nil {

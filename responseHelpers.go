@@ -6,6 +6,10 @@ import (
     "net/http"
 )
 
+func respondWithErrorCode(w http.ResponseWriter, code int) {
+    w.WriteHeader(code)
+}
+
 func respondWithError(w http.ResponseWriter, code int, msg string) {
     type serverError struct {
         Error string `json:"error"`

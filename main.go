@@ -1,24 +1,32 @@
 package main
 
 import (
-    "log"
-    "net/http"
-    "path/filepath"
-    "os"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
 
-    "github.com/mike-cellini/chirpy/internal/database"
-    
-    "github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
+	"github.com/mike-cellini/chirpy/internal/database"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type apiConfig struct {
     fileserverHits int
+    jwtSecret string
 }
 
+var apiCfg apiConfig
+
 func main() {
+    godotenv.Load()
     const filepathRoot = "."
     const port = "8080"
-    var apiCfg = apiConfig {}
+    apiCfg = apiConfig {
+        fileserverHits: 0,
+        jwtSecret: os.Getenv("JWT_SECRET"),
+    }
     
     path, err := os.Executable()
     if err != nil {
@@ -44,6 +52,7 @@ func main() {
     rApi.Get("/chirps/{chirpid}", chirpHandler.retrieveById)
     rApi.Post("/users", userHandler.create)
     rApi.Post("/login", userHandler.authenticate)
+    rApi.Put("/users", userHandler.update)
     r.Mount("/api", rApi)
     
     handler := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
