@@ -2,17 +2,12 @@ package main
 
 import (
 	"encoding/json"
-    "errors"
-    "fmt"
-	"net/http"
     "log"
-    "time"
+	"net/http"
     "strings"
-    "strconv"
 
 	"github.com/mike-cellini/chirpy/internal/database"
 
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -63,9 +58,9 @@ func (uh *userHandler) update(w http.ResponseWriter, r *http.Request) {
 
     auth := r.Header.Get("Authorization")
     token := strings.TrimPrefix(auth, "Bearer ")
-    id, err := validateToken(token)
+    id, err := validateAccessToken(token)
     if err != nil {
-        respondWithErrorCode(w, 401)
+        w.WriteHeader(401)
         return
     }
 
@@ -97,6 +92,7 @@ func (uh *userHandler) authenticate(w http.ResponseWriter, r *http.Request) {
         Email string `json:"email"`
         Id int `json:"id"`
         Token string `json:"token"`
+        RefreshToken string `json:"refresh_token"`
     }
 
     decoder := json.NewDecoder(r.Body)
@@ -119,57 +115,48 @@ func (uh *userHandler) authenticate(w http.ResponseWriter, r *http.Request) {
         respondWithError(w, 401, "Email and/or password are invalid.")
     }
 
-    if req.ExpiresInSeconds == 0 {
-        req.ExpiresInSeconds = 86400
-    }
-
-    token := createJwt(req.ExpiresInSeconds, u.Id)
+    token := createToken(u.Id, getAccessIssuerAndExpiration)
+    refreshToken := createToken(u.Id, getRefreshIssuerAndExpiration)
 
     res := response {
         Id: u.Id,
         Email: u.Email,
         Token: token,
+        RefreshToken: refreshToken,
     }
     respondWithJSON(w, 200, res)
 }
 
-func createJwt(expiresInSeconds int, userId int) string {
-    issuedAt := time.Now().UTC()
-    expiresAt := issuedAt.Add(time.Duration(expiresInSeconds * int(time.Second)))
-
-    var claims = jwt.RegisteredClaims {
-        Issuer: "chirpy",
-        IssuedAt: jwt.NewNumericDate(issuedAt),
-        ExpiresAt: jwt.NewNumericDate(expiresAt),
-        Subject: fmt.Sprint(userId),
+func (uh *userHandler) refresh(w http.ResponseWriter, r *http.Request) {
+    type response struct {
+        Token string `json:"token"`
     }
 
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    val, err := token.SignedString([]byte(apiCfg.jwtSecret))
+    auth := r.Header.Get("Authorization")
+    token := strings.TrimPrefix(auth, "Bearer ")
+    id, err := validateRefreshToken(token, uh.db)
     if err != nil {
-        log.Printf("Unable to create token: %s", err.Error())
+        log.Print("Could not validate refresh token")
+        w.WriteHeader(401)
+        return
     }
 
-    return val
+    accessToken := createToken(id, getAccessIssuerAndExpiration)
+
+    res := response {
+        Token: accessToken,
+    }
+    respondWithJSON(w, 200, res)
 }
 
-func validateToken(token string) (int, error) {
-    claims := jwt.RegisteredClaims {}
-    t, err := jwt.ParseWithClaims(token, &claims, func(t *jwt.Token) (interface{}, error) {
-        return []byte(apiCfg.jwtSecret), nil
-    })
+func (uh *userHandler) revoke(w http.ResponseWriter, r *http.Request) {
+    auth := r.Header.Get("Authorization")
+    token := strings.TrimPrefix(auth, "Bearer ")
 
+    err := revokeToken(token, uh.db)
     if err != nil {
-        log.Printf("Token parse error: %s", err.Error())
-        return 0, err
+        w.WriteHeader(401)
+        return
     }
-
-    s, err := t.Claims.GetSubject()
-    if err != nil {
-        return 0, errors.New("Unable to parse claims")
-    }
-
-    log.Print("Converting", s)
-    id, _ := strconv.Atoi(s)
-    return id, nil
+    w.WriteHeader(200)
 }

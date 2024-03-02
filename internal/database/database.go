@@ -5,6 +5,7 @@ import (
     "log"
     "fmt"
     "sync"
+    "time"
     "os"
     "errors"
 )
@@ -25,9 +26,15 @@ type User struct {
     Id int `json:"id"`
 }
 
+type RevokedToken struct {
+    Token string `json:"token"`
+    RevokeDate time.Time `json:"revoke_date"`
+}
+
 type DBStructure struct {
     Chirps map[int]Chirp `json:"chirps"`
     Users map[int]User `json:"users"`
+    RevokedTokens map[string]RevokedToken `json:"revoked_tokens"`
 }
 
 func NewDB(path string)(*DB, error) {
@@ -43,6 +50,7 @@ func NewDB(path string)(*DB, error) {
         dbMap := DBStructure {
             Chirps: make(map[int]Chirp),
             Users: make(map[int]User),
+            RevokedTokens: make(map[string]RevokedToken),
         }
 
         data, err := json.Marshal(dbMap); 

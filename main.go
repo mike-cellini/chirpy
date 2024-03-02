@@ -53,6 +53,8 @@ func main() {
     rApi.Post("/users", userHandler.create)
     rApi.Post("/login", userHandler.authenticate)
     rApi.Put("/users", userHandler.update)
+    rApi.Post("/refresh", userHandler.refresh)
+    rApi.Post("/revoke", userHandler.revoke)
     r.Mount("/api", rApi)
     
     handler := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
