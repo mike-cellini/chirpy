@@ -41,9 +41,17 @@ func (ch *chirpHandler) create(w http.ResponseWriter, r *http.Request) {
         CleanedBody string `json:"cleaned_body"`
     }
 
+    auth := r.Header.Get("Authorization")
+    token := strings.TrimPrefix(auth, "Bearer ")
+    id, err := validateAccessToken(token)
+    if err != nil {
+        w.WriteHeader(401)
+        return
+    }
+
     decoder := json.NewDecoder(r.Body)
     req := request{}
-    err := decoder.Decode(&req)
+    err = decoder.Decode(&req)
 
     if err != nil {
         respondWithError(w, 400, "Something went wrong")
@@ -53,17 +61,17 @@ func (ch *chirpHandler) create(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    c, err := ch.db.CreateChirp(req.Body)
+    c, err := ch.db.CreateChirp(id, req.Body)
     respondWithJSON(w, 201, c)
 }
 
 func (ch *chirpHandler) retrieve(w http.ResponseWriter, r *http.Request) {
     data, err := ch.db.GetChirps()
-     if err != nil {
-         respondWithError(w, 400, "Something went wrong")
-         return
-     }
-     respondWithJSON(w, 200, data)
+    if err != nil {
+        respondWithError(w, 400, "Something went wrong")
+        return
+    }
+    respondWithJSON(w, 200, data)
 }
 
 func (ch *chirpHandler) retrieveById(w http.ResponseWriter, r *http.Request) {
@@ -82,4 +90,34 @@ func (ch *chirpHandler) retrieveById(w http.ResponseWriter, r *http.Request) {
          return
      }
      respondWithJSON(w, 200, data)
+}
+
+func (ch *chirpHandler) delete(w http.ResponseWriter, r *http.Request) {
+    auth := r.Header.Get("Authorization")
+    token := strings.TrimPrefix(auth, "Bearer ")
+    userId, err := validateAccessToken(token)
+    if err != nil {
+        w.WriteHeader(401)
+        return
+    }
+
+    chirpID := chi.URLParam(r, "chirpid")
+    id, err := strconv.Atoi(chirpID)
+    if err != nil {
+        respondWithError(w, 400, "Invalid Chirp ID")
+        return
+    }
+
+    data, ok, err := ch.db.GetChirpById(id)
+    if err != nil {
+        respondWithError(w, 400, "Something went wrong")
+        return
+    } else if !ok {
+        w.WriteHeader(404)
+        return
+    } else if data.AuthorId != userId {
+        w.WriteHeader(403)
+    }
+
+    err = ch.db.DeleteChirp(id)
 }

@@ -5,7 +5,7 @@ import (
     "sort"
 )
 
-func (db *DB) CreateChirp(body string) (Chirp, error) {
+func (db *DB) CreateChirp(authorId int, body string) (Chirp, error) {
     dbStructure, err := db.loadDB()
     if err != nil {
         log.Printf("ERROR: Unable to load data from database")
@@ -15,6 +15,7 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
     id := len(dbStructure.Chirps) + 1
     
     c := Chirp { 
+        AuthorId: authorId,
         Id: id, 
         Body: body,
     }
@@ -55,5 +56,16 @@ func (db *DB) GetChirpById(id int) (chirp Chirp, ok bool, err error) {
     chirp, ok = dbStructure.Chirps[id]
 
     return chirp, ok, nil
+}
+
+func (db *DB) DeleteChirp(id int) (err error) {
+    dbStructure, err := db.loadDB()
+    if err != nil {
+        log.Printf("ERROR: Unable to load data from database: %s", err.Error())
+        return err
+    }
+
+    delete(dbStructure.Chirps, id)
+    return nil
 }
 

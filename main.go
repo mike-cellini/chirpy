@@ -50,6 +50,7 @@ func main() {
     rApi.Post("/chirps", chirpHandler.create)
     rApi.Get("/chirps", chirpHandler.retrieve)
     rApi.Get("/chirps/{chirpid}", chirpHandler.retrieveById)
+    rApi.Delete("/chirps/{chirpid}", chirpHandler.delete)
     rApi.Post("/users", userHandler.create)
     rApi.Post("/login", userHandler.authenticate)
     rApi.Put("/users", userHandler.update)
