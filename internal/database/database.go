@@ -25,6 +25,7 @@ type User struct {
     Email string `json:"email"`
     PasswordHash string `json:"passwordHash"`
     Id int `json:"id"`
+    IsChirpyRed bool `json:"is_chirpy_red"`
 }
 
 type RevokedToken struct {

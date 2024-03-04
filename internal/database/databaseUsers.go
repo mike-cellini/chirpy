@@ -24,6 +24,7 @@ func (db *DB) CreateUser(email string, passHash string) (User, error) {
         Id: id,
         Email: email,
         PasswordHash: string(passHash),
+        IsChirpyRed: false,
     }
     dbStructure.Users[id] = u
 
@@ -60,6 +61,31 @@ func (db *DB) UpdateUser(id int, email string, passwordHash string) (User, error
     }
 
     return u, nil
+}
+
+func (db *DB) UpgradeUser(id int) (user User, ok bool, err error) {
+    dbStructure, err := db.loadDB()
+    if err != nil {
+        log.Printf("ERROR: Unable to load data from database")
+        return User {}, false, err
+    }
+
+    u, ok := dbStructure.Users[id]
+    if !ok {
+        log.Printf("ERROR: User %d does not exist", id)
+        return User {}, false, nil
+    }
+
+    u.IsChirpyRed = true
+    dbStructure.Users[id] = u
+    
+    err = db.writeDB(dbStructure)
+    if err != nil {
+        log.Printf("ERROR: Could not write DB: %v", err.Error())
+        return User {}, false, err
+    }
+
+    return u, true, nil
 }
 
 func (db *DB) RetrieveUserByEmail(email string) (User, error) {

@@ -25,6 +25,7 @@ func (uh *userHandler) create(w http.ResponseWriter, r *http.Request) {
     type response struct {
         Email string `json:"email"`
         Id int `json:"id"`
+        IsChirpyRed bool `json:"is_chirpy_red"`
     }
 
     decoder := json.NewDecoder(r.Body)
@@ -46,6 +47,7 @@ func (uh *userHandler) create(w http.ResponseWriter, r *http.Request) {
     res := response {
         Id: u.Id,
         Email: u.Email,
+        IsChirpyRed: u.IsChirpyRed,
     }
     respondWithJSON(w, 201, res)
 }
@@ -54,6 +56,7 @@ func (uh *userHandler) update(w http.ResponseWriter, r *http.Request) {
     type response struct {
         Email string `json:"email"`
         Id int `json:"id"`
+        IsChirpyRed bool `json:"is_chirpy_red"`
     }
 
     auth := r.Header.Get("Authorization")
@@ -91,6 +94,7 @@ func (uh *userHandler) authenticate(w http.ResponseWriter, r *http.Request) {
     type response struct {
         Email string `json:"email"`
         Id int `json:"id"`
+        IsChirpyRed bool `json:"is_chirpy_red"`
         Token string `json:"token"`
         RefreshToken string `json:"refresh_token"`
     }
@@ -121,6 +125,7 @@ func (uh *userHandler) authenticate(w http.ResponseWriter, r *http.Request) {
     res := response {
         Id: u.Id,
         Email: u.Email,
+        IsChirpyRed: u.IsChirpyRed,
         Token: token,
         RefreshToken: refreshToken,
     }

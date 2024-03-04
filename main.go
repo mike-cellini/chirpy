@@ -15,6 +15,7 @@ import (
 type apiConfig struct {
     fileserverHits int
     jwtSecret string
+    polkaKey string
 }
 
 var apiCfg apiConfig
@@ -26,6 +27,7 @@ func main() {
     apiCfg = apiConfig {
         fileserverHits: 0,
         jwtSecret: os.Getenv("JWT_SECRET"),
+        polkaKey: os.Getenv("POLKA_KEY"),
     }
     
     path, err := os.Executable()
@@ -40,6 +42,7 @@ func main() {
 
     chirpHandler := chirpHandler { db: db }
     userHandler := userHandler { db: db }
+    polkaHandler := polkaHandler { db: db }
 
     r := chi.NewRouter()
     rApi := chi.NewRouter()
@@ -56,6 +59,7 @@ func main() {
     rApi.Put("/users", userHandler.update)
     rApi.Post("/refresh", userHandler.refresh)
     rApi.Post("/revoke", userHandler.revoke)
+    rApi.Post("/polka/webhooks", polkaHandler.handleEvent)
     r.Mount("/api", rApi)
     
     handler := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
