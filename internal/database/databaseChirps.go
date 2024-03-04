@@ -2,7 +2,6 @@ package database
 
 import (
     "log"
-    "sort"
 )
 
 func (db *DB) CreateChirp(authorId int, body string) (Chirp, error) {
@@ -30,7 +29,7 @@ func (db *DB) CreateChirp(authorId int, body string) (Chirp, error) {
     return c, nil
 }
 
-func (db *DB) GetChirps() ([]Chirp, error) {
+func (db *DB) GetChirps(authorId int) ([]Chirp, error) {
     dbStructure, err := db.loadDB()
     if err != nil {
         log.Printf("ERROR: Unable to load data from database")
@@ -39,10 +38,11 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 
     vals := make([]Chirp, 0, len(dbStructure.Chirps))
     for _, v := range dbStructure.Chirps {
-        vals = append(vals, v)
+        if authorId == 0 || v.AuthorId == authorId {
+            vals = append(vals, v)
+        }
     }
 
-    sort.Slice(vals, func (a, b int) bool { return vals[a].Id < vals[b].Id })
     return vals, nil
 }
 

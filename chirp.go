@@ -2,9 +2,11 @@ package main
 
 import (
     "encoding/json"
+    "fmt"
     "net/http"
     "strconv"
     "strings"
+    "sort"
     
     "github.com/mike-cellini/chirpy/internal/database"
     
@@ -66,10 +68,28 @@ func (ch *chirpHandler) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ch *chirpHandler) retrieve(w http.ResponseWriter, r *http.Request) {
-    data, err := ch.db.GetChirps()
+    var err error
+    authorIdStr := r.URL.Query().Get("author_id")
+    sortOrder := r.URL.Query().Get("sort")
+
+    authorId := 0
+    if authorIdStr != "" {
+        authorId, err = strconv.Atoi(authorIdStr)
+        if err != nil {
+            respondWithError(w, 400, fmt.Sprintf("%s is not a valid author id", authorIdStr))
+        }
+    }
+
+    data, err := ch.db.GetChirps(authorId)
     if err != nil {
         respondWithError(w, 400, "Something went wrong")
         return
+    }
+
+    if sortOrder == "desc" {
+        sort.Slice(data, func (a, b int) bool { return data[a].Id > data[b].Id })
+    } else {
+        sort.Slice(data, func (a, b int) bool { return data[a].Id < data[b].Id })
     }
     respondWithJSON(w, 200, data)
 }
